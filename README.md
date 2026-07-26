@@ -39,13 +39,26 @@
 - **改需求要回上游**:需求变了先 `/pm` 更新 PRD,再 `/design` 同步设计,最后 `/dev` 改代码,避免文档和代码脱节。
 - **自然语言也行**:不用命令,直接说「切换到产品经理模式,分析我的需求」效果相同。
 
+## 本项目产物:管理后台(已开发完成)
+
+本仓库已用该工作流完成一个成品:**电商自动化助手 · Web 管理后台**(Vite + Vue 3)。
+
+```bash
+npm install
+npm run dev      # 开发模式,浏览器打开提示的地址
+npm run build    # 生产构建,产物在 dist/
+```
+
+- 演示账号:`admin / admin123`(管理员)、`op01 / op123`(操作员)
+- 默认使用 Mock 数据;联调真实后端时创建 `.env.local` 写入 `VITE_USE_MOCK=false`(接口契约见 `docs/PRD.md` §6,可选 `VITE_API_BASE` 指定后端地址)
+
 ## 目录结构
 
 ```
 .claude/commands/   # 斜杠命令:/pm /design /dev
 prompts/            # 各角色提示词(协调者/产品经理/设计师/前端工程师)
 docs/               # 阶段产物:PRD.md、DESIGN_SPEC.md
-src/                # 开发阶段生成的项目代码(默认位置)
+src/                # 管理后台源码(api/ components/ views/ store/ styles/)
 ```
 
 ## 自定义
