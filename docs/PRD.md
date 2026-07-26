@@ -92,6 +92,8 @@ flowchart TD
 | /api/dashboard/summary | GET | 看板指标卡数据 |
 | /api/dashboard/trend?days=7\|30 | GET | 采集/发布趋势 |
 | /api/dashboard/failures?days=30 | GET | 失败原因分布 |
+| /api/collect | POST | 粘贴 1688 链接下发采集指令(App 端执行,完成后商品入库)|
+| /api/products/{id}/publish | POST | 下发「发布到千牛」指令(App 端执行,生成发布任务)|
 | /api/products | GET/DELETE | 商品分页列表(支持 status、keyword)、批量删除 |
 | /api/products/{id} | GET/PUT | 商品详情、编辑保存 |
 | /api/mappings | GET | 映射分页列表(支持 keyword) |

@@ -21,11 +21,13 @@
         v-if="selected.length" class="btn btn-secondary"
         :disabled="busy" @click="batchMarkPending"
       >批量标记待发布</button>
+      <button class="btn btn-primary" @click="collectOpen = true">+ 采集 1688 商品</button>
     </div>
 
     <TableState :loading="loading" :error="error" :empty="!items.length" empty-text="还没有采集到商品" @retry="load">
       <template #empty-action>
-        <p class="caption">在手机端 App 打开 1688 商品页,点击悬浮球「采集此商品」</p>
+        <p class="caption">点击右上角「+ 采集 1688 商品」粘贴商品链接,或在手机端 App 打开 1688 商品页点击悬浮球采集</p>
+        <button class="btn btn-primary" @click="collectOpen = true">+ 采集 1688 商品</button>
       </template>
 
       <div class="table-wrap">
@@ -52,7 +54,11 @@
               <td><StatusTag :status="p.status" /></td>
               <td class="caption">{{ fmtTime(p.collectedAt) }}</td>
               <td @click.stop>
-                <button class="link-btn" @click="openEdit(p.id)">编辑</button>
+                <button
+                  v-if="p.status === 'draft' || p.status === 'failed'"
+                  class="link-btn" :disabled="publishingId === p.id" @click="publish(p)"
+                >发布</button>
+                <button class="link-btn" :style="p.status === 'draft' || p.status === 'failed' ? 'margin-left:12px' : ''" @click="openEdit(p.id)">编辑</button>
                 <button class="link-btn danger" style="margin-left:12px" @click="askDelete(p)">删除</button>
               </td>
             </tr>
@@ -76,6 +82,30 @@
       :message="`确定删除选中的 ${selected.length} 个商品吗?删除后不可恢复。`"
       confirm-text="删除" @cancel="batchDeleteOpen = false" @confirm="doBatchDelete"
     />
+
+    <!-- 采集 1688 商品弹窗 -->
+    <Teleport to="body">
+      <div v-if="collectOpen" class="overlay" @click.self="collectOpen = false">
+        <form class="dialog" @submit.prevent="doCollect">
+          <h2>采集 1688 商品</h2>
+          <p class="caption" style="margin-top:8px">粘贴 1688 商品链接,采集指令将下发到已连接的手机 App,完成后自动进入商品库</p>
+          <div class="field" style="margin-top:16px">
+            <label for="curl">商品链接</label>
+            <input
+              id="curl" class="input" v-model.trim="collectUrl"
+              placeholder="https://detail.1688.com/offer/xxxxxxxx.html"
+            />
+            <p v-if="collectErr" class="err-msg">{{ collectErr }}</p>
+          </div>
+          <div class="dlg-actions">
+            <button type="button" class="btn btn-secondary" @click="collectOpen = false">取消</button>
+            <button class="btn btn-primary" :disabled="busy || !collectUrl">
+              <span v-if="busy" class="spinner"></span>下发采集指令
+            </button>
+          </div>
+        </form>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -109,6 +139,10 @@ const selected = ref([])
 const editingId = ref(null)
 const deleting = ref(null)
 const batchDeleteOpen = ref(false)
+const collectOpen = ref(false)
+const collectUrl = ref('')
+const collectErr = ref('')
+const publishingId = ref(null)
 
 const allChecked = computed(() => items.value.length > 0 && selected.value.length === items.value.length)
 
@@ -162,6 +196,34 @@ async function doBatchDelete() {
   }
 }
 
+async function doCollect() {
+  busy.value = true
+  collectErr.value = ''
+  try {
+    await api.collectByUrl(collectUrl.value)
+    toast('采集指令已下发至手机 App,完成后商品将自动入库')
+    collectOpen.value = false
+    collectUrl.value = ''
+  } catch (e) {
+    collectErr.value = e.message || '下发失败'
+  } finally {
+    busy.value = false
+  }
+}
+
+async function publish(p) {
+  publishingId.value = p.id
+  try {
+    await api.publishProduct(p.id)
+    toast('发布指令已下发至手机 App,可在「任务日志」跟踪进度')
+    load()
+  } catch (e) {
+    toast(e.message || '发布失败', 'error')
+  } finally {
+    publishingId.value = null
+  }
+}
+
 async function batchMarkPending() {
   busy.value = true
   try {
@@ -188,6 +250,15 @@ onMounted(load)
 .tab:hover { background: var(--bg-page); }
 .tab.active { background: var(--primary-bg); color: var(--primary); }
 .search { width: 220px; margin-left: auto; }
+.overlay {
+  position: fixed; inset: 0; background: var(--overlay); z-index: 900;
+  display: flex; align-items: center; justify-content: center;
+}
+.dialog {
+  width: 480px; background: var(--bg-card); border-radius: var(--radius-card);
+  box-shadow: var(--shadow-modal); padding: 24px;
+}
+.dlg-actions { display: flex; justify-content: flex-end; gap: 12px; }
 .thumb { width: 56px; height: 56px; border-radius: 4px; object-fit: cover; display: block; }
 .row { cursor: pointer; }
 .title-cell {

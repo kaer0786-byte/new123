@@ -75,7 +75,7 @@
         <button class="btn btn-secondary" :disabled="busy" @click="save(false)">
           <span v-if="busy" class="spinner dark"></span>保存
         </button>
-        <button class="btn btn-primary" :disabled="busy" @click="save(true)">保存并标记待发布</button>
+        <button class="btn btn-primary" :disabled="busy" @click="saveAndPublish" title="保存修改并下发发布指令到手机 App">保存并一键发布到千牛</button>
       </div>
     </template>
   </DrawerPanel>
@@ -128,20 +128,38 @@ watch(() => props.productId, async id => {
   }
 })
 
-async function save(markPending) {
+async function save(silent) {
   busy.value = true
   try {
     await api.updateProduct(props.productId, {
       selectedTitle: form.value.selectedTitle,
       price: form.value.price,
-      skus: form.value.skus,
-      ...(markPending ? { status: 'pending' } : {})
+      skus: form.value.skus
     })
-    toast(markPending ? '已保存并标记待发布,App 将同步执行' : '已保存')
+    if (!silent) {
+      toast('已保存')
+      emit('saved')
+      emit('close')
+    }
+    return true
+  } catch (e) {
+    toast(e.message || '保存失败', 'error')
+    return false
+  } finally {
+    busy.value = false
+  }
+}
+
+async function saveAndPublish() {
+  if (!(await save(true))) return
+  busy.value = true
+  try {
+    await api.publishProduct(props.productId)
+    toast('已保存,发布指令已下发至手机 App,可在「任务日志」跟踪进度')
     emit('saved')
     emit('close')
   } catch (e) {
-    toast(e.message || '保存失败', 'error')
+    toast(e.message || '发布失败', 'error')
   } finally {
     busy.value = false
   }

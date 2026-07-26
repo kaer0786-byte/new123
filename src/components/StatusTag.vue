@@ -1,5 +1,5 @@
 <template>
-  <span class="tag" :class="conf.cls">
+  <span class="tag" :class="conf.cls" :title="conf.tip || ''">
     <span v-if="status === 'running'" class="spin">⟳</span>
     <span v-else class="dot" aria-hidden="true"></span>
     {{ conf.label }}
@@ -12,8 +12,8 @@ import { computed } from 'vue'
 const props = defineProps({ status: { type: String, required: true } })
 
 const MAP = {
-  draft: { label: '草稿', cls: 'tag-gray' },
-  pending: { label: '待发布', cls: 'tag-blue' },
+  draft: { label: '草稿', cls: 'tag-gray', tip: '已采集,尚未发布' },
+  pending: { label: '待发布', cls: 'tag-blue', tip: '发布指令已下发,等待手机端 App 执行' },
   published: { label: '已发布', cls: 'tag-green' },
   success: { label: '成功', cls: 'tag-green' },
   failed: { label: '失败', cls: 'tag-red' },

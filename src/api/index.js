@@ -38,6 +38,8 @@ const realApi = {
   dashboardSummary: () => http('GET', '/dashboard/summary'),
   dashboardTrend: p => http('GET', `/dashboard/trend${qs(p)}`),
   dashboardFailures: () => http('GET', '/dashboard/failures?days=30'),
+  collectByUrl: url => http('POST', '/collect', { url }),
+  publishProduct: id => http('POST', `/products/${id}/publish`),
   listProducts: p => http('GET', `/products${qs(p)}`),
   getProduct: id => http('GET', `/products/${id}`),
   updateProduct: (id, body) => http('PUT', `/products/${id}`, body),

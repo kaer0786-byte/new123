@@ -171,6 +171,81 @@ export const mockApi = {
       .sort((a, b) => b.count - a.count)
   },
 
+  // 粘贴 1688 链接 → 下发采集指令(模拟:任务先 running,数秒后完成并入库)
+  async collectByUrl(url) {
+    await delay()
+    if (!/1688\.com/.test(url)) throw new Error('仅支持 1688 商品链接(detail.1688.com/offer/…)')
+    const idx = db.products.length
+    const task = {
+      id: 2000 + db.tasks.length,
+      type: 'collect', status: 'running',
+      productId: null, productTitle: url.slice(0, 60),
+      productImage: svgPlaceholder('采集中', '#9aa1ac'),
+      startedAt: new Date().toISOString(), durationSec: null,
+      failReason: null, screenshot: null,
+      steps: [{ name: '指令已下发至手机 App', status: 'success', at: new Date().toISOString(), detail: '' }]
+    }
+    db.tasks.unshift(task)
+    setTimeout(() => {
+      const name = NAMES[idx % NAMES.length]
+      const cost = +(8 + (idx * 4.1) % 50).toFixed(2)
+      const product = {
+        id: 1000 + idx, title: name,
+        optimizedTitles: [`${name} 2026新款`, `${name} 爆款推荐`, `${name} 高品质`],
+        selectedTitle: `${name} 2026新款`,
+        costPrice: cost, price: +(cost * 1.3).toFixed(2), status: 'draft',
+        image: svgPlaceholder('新采集', COLORS[idx % COLORS.length]),
+        detailImages: [0, 1].map(n => svgPlaceholder(`详情${n + 1}`, COLORS[(idx + n) % COLORS.length])),
+        skus: [{ spec: '均码 / 默认', price: +(cost * 1.3).toFixed(2), stock: 100 }],
+        sourceUrl: url, collectedAt: new Date().toISOString()
+      }
+      db.products.unshift(product)
+      task.status = 'success'
+      task.productId = product.id
+      task.productTitle = product.title
+      task.productImage = product.image
+      task.durationSec = 6
+      task.steps.push({ name: '采集完成,已入商品库', status: 'success', at: new Date().toISOString(), detail: '' })
+    }, 6000)
+    return { ok: true, taskId: task.id, message: '采集指令已下发至手机 App' }
+  },
+
+  // 一键发布到千牛(模拟:任务 running,数秒后成功并生成映射)
+  async publishProduct(id) {
+    await delay()
+    const p = db.products.find(p => p.id === +id)
+    if (!p) throw new Error('商品不存在')
+    p.status = 'pending'
+    const task = {
+      id: 2000 + db.tasks.length,
+      type: 'publish', status: 'running',
+      productId: p.id, productTitle: p.selectedTitle || p.title, productImage: p.image,
+      startedAt: new Date().toISOString(), durationSec: null,
+      failReason: null, screenshot: null,
+      steps: [{ name: '发布指令已下发至手机 App', status: 'success', at: new Date().toISOString(), detail: '' }]
+    }
+    db.tasks.unshift(task)
+    setTimeout(() => {
+      p.status = 'published'
+      task.status = 'success'
+      task.durationSec = 9
+      task.steps.push(
+        { name: '千牛表单填写完成', status: 'success', at: new Date().toISOString(), detail: '' },
+        { name: '发布成功,已生成映射', status: 'success', at: new Date().toISOString(), detail: '' }
+      )
+      db.mappings.unshift({
+        id: 3000 + db.mappings.length,
+        sourceTitle: p.title, sourceId: String(661000000 + p.id - 1000), sourceUrl: p.sourceUrl, sourceImage: p.image,
+        taobaoTitle: p.selectedTitle || p.title, taobaoId: String(778100000 + p.id),
+        markupSnapshot: db.settings.markupType === 'PERCENT' ? `百分比加价 ${db.settings.markupValue}%` : `固定加价 ¥${db.settings.markupValue}`,
+        publishedAt: new Date().toISOString(),
+        skuMap: p.skus.map(s => ({ source: s.spec, taobao: s.spec, price: s.price })),
+        raw: { title: p.title, price: p.costPrice, skus: p.skus }
+      })
+    }, 9000)
+    return { ok: true, taskId: task.id, message: '发布指令已下发至手机 App' }
+  },
+
   async listProducts({ status = '', keyword = '', page = 1 }) {
     await delay()
     let list = db.products
