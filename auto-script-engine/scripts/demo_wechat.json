@@ -1,0 +1,57 @@
+{
+  "name": "微信发现页浏览演示",
+  "actions": [
+    {
+      "type": "launchApp",
+      "packageName": "com.tencent.mm"
+    },
+    {
+      "type": "wait",
+      "ms": 3000
+    },
+    {
+      "type": "click",
+      "condition": { "text": "发现" },
+      "timeout": 8000,
+      "retry": 2,
+      "retryInterval": 800
+    },
+    {
+      "type": "wait",
+      "condition": { "text": "朋友圈" },
+      "timeout": 5000
+    },
+    {
+      "type": "click",
+      "condition": { "text": "朋友圈" },
+      "timeout": 5000
+    },
+    {
+      "type": "wait",
+      "ms": 2000
+    },
+    {
+      "type": "loop",
+      "times": 5,
+      "actions": [
+        {
+          "type": "swipe",
+          "direction": "up",
+          "duration": 500
+        },
+        {
+          "type": "wait",
+          "ms": 1500
+        }
+      ]
+    },
+    {
+      "type": "screenshot",
+      "path": "/sdcard/Scripts/shots/wechat_moments.png"
+    },
+    {
+      "type": "globalAction",
+      "globalAction": "back"
+    }
+  ]
+}

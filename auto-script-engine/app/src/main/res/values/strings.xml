@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">AutoScriptEngine</string>
+    <string name="accessibility_desc">全能型自动化脚本引擎,需要无障碍权限以查找界面元素并模拟点击、滑动、输入等操作。</string>
+</resources>
