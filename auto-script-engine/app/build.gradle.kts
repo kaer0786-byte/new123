@@ -22,6 +22,16 @@ android {
         }
     }
 
+    // 按 CPU 架构拆分 APK,减小体积(arm64-v8a 覆盖绝大多数现代手机)
+    splits {
+        abi {
+            isEnable = true
+            reset()
+            include("arm64-v8a", "armeabi-v7a")
+            isUniversalApk = false
+        }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
