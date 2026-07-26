@@ -68,7 +68,9 @@ function saveConfig() {
             AI_BASE_URL: CONFIG.AI_BASE_URL,
             AI_API_KEY: CONFIG.AI_API_KEY,
             AI_TEXT_MODEL: CONFIG.AI_TEXT_MODEL,
-            AI_VISION_MODEL: CONFIG.AI_VISION_MODEL
+            AI_VISION_MODEL: CONFIG.AI_VISION_MODEL,
+            LOOP_INTERVAL: CONFIG.LOOP_INTERVAL,
+            STEP_TIMEOUT: CONFIG.STEP_TIMEOUT
         };
         files.write(CONFIG.CONFIG_FILE, JSON.stringify(out, null, 2));
     } catch (e) {
@@ -568,36 +570,81 @@ var Simulator = {
 
 ui.layout(
     <vertical h="*">
-        {/* 顶部标题栏 */}
+        {/* 顶部标题栏(主页面与设置页共用,标题动态切换) */}
         <appbar>
             <toolbar id="toolbar" title="AutoFlow AI" subtitle="AI 自动化脚本管理器"/>
         </appbar>
 
-        {/* 脚本列表 */}
+        {/* 页面容器:主页面与设置页为同层 frame,切换 visibility 实现二级页面 */}
         <frame layout_weight="1">
-            <list id="scriptList">
-                <horizontal padding="16 12" gravity="center_vertical" bg="?selectableItemBackground">
-                    <vertical layout_weight="1">
-                        <text text="{{name}}" textColor="#212121" textSize="15sp"/>
-                        <text text="{{sizeText}}" textColor="#9e9e9e" textSize="12sp" marginTop="2"/>
-                    </vertical>
-                    <text text="▶ 运行" textColor="#2a78d6" textSize="14sp" padding="8 4"/>
-                </horizontal>
-            </list>
-            {/* 空状态 */}
-            <vertical id="emptyView" gravity="center" visibility="gone">
-                <text text="还没有脚本" textColor="#9e9e9e" textSize="16sp"/>
-                <text text="点击下方「AI 生成」或「添加脚本」开始" textColor="#bdbdbd" textSize="13sp" marginTop="6"/>
-            </vertical>
-        </frame>
 
-        {/* 底部三按钮 */}
-        <horizontal bg="#f5f6f8" padding="8">
-            <button id="btnAdd" text="添加脚本" style="Widget.AppCompat.Button.Borderless.Colored" layout_weight="1"/>
-            <button id="btnAI" text="AI 生成" style="Widget.AppCompat.Button.Borderless.Colored" layout_weight="1"/>
-            <button id="btnSim" text="AI 实时模拟" style="Widget.AppCompat.Button.Borderless.Colored" layout_weight="1"/>
-            <button id="btnSettings" text="设置" style="Widget.AppCompat.Button.Borderless.Colored" layout_weight="1"/>
-        </horizontal>
+            {/* ============ 主页面 ============ */}
+            <vertical id="mainPage" h="*">
+                <frame layout_weight="1">
+                    <list id="scriptList">
+                        <horizontal padding="16 12" gravity="center_vertical" bg="?selectableItemBackground">
+                            <vertical layout_weight="1">
+                                <text text="{{name}}" textColor="#212121" textSize="15sp"/>
+                                <text text="{{sizeText}}" textColor="#9e9e9e" textSize="12sp" marginTop="2"/>
+                            </vertical>
+                            <text text="▶ 运行" textColor="#2a78d6" textSize="14sp" padding="8 4"/>
+                        </horizontal>
+                    </list>
+                    {/* 空状态 */}
+                    <vertical id="emptyView" gravity="center" visibility="gone">
+                        <text text="还没有脚本" textColor="#9e9e9e" textSize="16sp"/>
+                        <text text="点击下方「AI 生成」或「添加脚本」开始" textColor="#bdbdbd" textSize="13sp" marginTop="6"/>
+                    </vertical>
+                </frame>
+
+                {/* 底部按钮 */}
+                <horizontal bg="#f5f6f8" padding="8">
+                    <button id="btnAdd" text="添加脚本" style="Widget.AppCompat.Button.Borderless.Colored" layout_weight="1"/>
+                    <button id="btnAI" text="AI 生成" style="Widget.AppCompat.Button.Borderless.Colored" layout_weight="1"/>
+                    <button id="btnSim" text="AI 实时模拟" style="Widget.AppCompat.Button.Borderless.Colored" layout_weight="1"/>
+                    <button id="btnSettings" text="设置" style="Widget.AppCompat.Button.Borderless.Colored" layout_weight="1"/>
+                </horizontal>
+            </vertical>
+
+            {/* ============ 设置二级页面 ============ */}
+            <vertical id="settingsPage" h="*" bg="#ffffff" visibility="gone">
+                <ScrollView layout_weight="1">
+                    <vertical padding="16">
+                        <text text="AI 接口配置" textColor="#2a78d6" textSize="13sp" textStyle="bold"/>
+
+                        <text text="接口地址(Base URL)" textColor="#5f6672" textSize="12sp" marginTop="16"/>
+                        <input id="setBaseUrl" hint="https://api.openai.com/v1" textSize="14sp" singleLine="true"/>
+
+                        <text text="API Key" textColor="#5f6672" textSize="12sp" marginTop="12"/>
+                        <input id="setApiKey" hint="sk-..." textSize="14sp" singleLine="true" password="true"/>
+                        <checkbox id="setShowKey" text="显示密钥" textSize="12sp" marginTop="4"/>
+
+                        <text text="文本模型(用于 AI 生成脚本)" textColor="#5f6672" textSize="12sp" marginTop="12"/>
+                        <input id="setTextModel" hint="gpt-4o-mini" textSize="14sp" singleLine="true"/>
+
+                        <text text="视觉模型(用于 AI 实时模拟)" textColor="#5f6672" textSize="12sp" marginTop="12"/>
+                        <input id="setVisionModel" hint="gpt-4o" textSize="14sp" singleLine="true"/>
+
+                        <text text="实时模拟参数" textColor="#2a78d6" textSize="13sp" textStyle="bold" marginTop="24"/>
+
+                        <text text="截图循环间隔(毫秒)" textColor="#5f6672" textSize="12sp" marginTop="16"/>
+                        <input id="setLoopInterval" hint="1000" textSize="14sp" singleLine="true" inputType="number"/>
+
+                        <text text="单步网络超时(毫秒)" textColor="#5f6672" textSize="12sp" marginTop="12"/>
+                        <input id="setStepTimeout" hint="10000" textSize="14sp" singleLine="true" inputType="number"/>
+
+                        <text id="setHint" text="" textColor="#e34948" textSize="12sp" marginTop="12"/>
+                    </vertical>
+                </ScrollView>
+
+                {/* 设置页底部操作栏 */}
+                <horizontal bg="#f5f6f8" padding="8">
+                    <button id="btnCancelSettings" text="返回" style="Widget.AppCompat.Button.Borderless" layout_weight="1"/>
+                    <button id="btnSaveSettings" text="保存" style="Widget.AppCompat.Button.Borderless.Colored" layout_weight="1"/>
+                </horizontal>
+            </vertical>
+
+        </frame>
     </vertical>
 );
 
@@ -760,31 +807,100 @@ ui.btnSim.click(function () {
 // 底部按钮:设置
 // ---------------------------------------------------------------------------
 ui.btnSettings.click(function () {
-    openSettings();
+    showSettings();
 });
 
-function openSettings() {
-    // 用一组连续输入框收集配置(保持单文件、无额外布局)
-    dialogs.rawInput("AI 接口地址(Base URL)", CONFIG.AI_BASE_URL).then(function (baseUrl) {
-        if (baseUrl == null) return;
-        CONFIG.AI_BASE_URL = baseUrl.trim() || CONFIG.AI_BASE_URL;
-        dialogs.rawInput("API Key", CONFIG.AI_API_KEY).then(function (key) {
-            if (key != null) CONFIG.AI_API_KEY = key.trim();
-            dialogs.rawInput("文本模型(生成脚本)", CONFIG.AI_TEXT_MODEL).then(function (tm) {
-                if (tm != null && tm.trim()) CONFIG.AI_TEXT_MODEL = tm.trim();
-                dialogs.rawInput("视觉模型(实时模拟)", CONFIG.AI_VISION_MODEL).then(function (vm) {
-                    if (vm != null && vm.trim()) CONFIG.AI_VISION_MODEL = vm.trim();
-                    saveConfig();
-                    toast("设置已保存");
-                });
-            });
-        });
-    });
+// 设置页内:显示/隐藏密钥
+ui.setShowKey.on("check", function (checked) {
+    ui.setApiKey.setInputType(checked
+        ? android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD
+        : android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_VARIATION_PASSWORD);
+    // 保持光标在末尾
+    ui.setApiKey.setSelection(ui.setApiKey.getText().length());
+});
+
+// 设置页:返回(不保存)
+ui.btnCancelSettings.click(function () {
+    hideSettings();
+});
+
+// 设置页:保存
+ui.btnSaveSettings.click(function () {
+    var baseUrl = ui.setBaseUrl.getText().toString().trim();
+    var key = ui.setApiKey.getText().toString().trim();
+    var textModel = ui.setTextModel.getText().toString().trim();
+    var visionModel = ui.setVisionModel.getText().toString().trim();
+    var loopInterval = parseInt(ui.setLoopInterval.getText().toString(), 10);
+    var stepTimeout = parseInt(ui.setStepTimeout.getText().toString(), 10);
+
+    // 基本校验
+    if (baseUrl && !/^https?:\/\//i.test(baseUrl)) {
+        ui.setHint.setText("接口地址需以 http:// 或 https:// 开头");
+        return;
+    }
+    if (loopInterval && (isNaN(loopInterval) || loopInterval < 200)) {
+        ui.setHint.setText("循环间隔不能小于 200ms");
+        return;
+    }
+    if (stepTimeout && (isNaN(stepTimeout) || stepTimeout < 1000)) {
+        ui.setHint.setText("单步超时不能小于 1000ms");
+        return;
+    }
+    ui.setHint.setText("");
+
+    // 写回 CONFIG(空值保留原默认)
+    if (baseUrl) CONFIG.AI_BASE_URL = baseUrl;
+    CONFIG.AI_API_KEY = key;
+    if (textModel) CONFIG.AI_TEXT_MODEL = textModel;
+    if (visionModel) CONFIG.AI_VISION_MODEL = visionModel;
+    if (!isNaN(loopInterval) && loopInterval) CONFIG.LOOP_INTERVAL = loopInterval;
+    if (!isNaN(stepTimeout) && stepTimeout) CONFIG.STEP_TIMEOUT = stepTimeout;
+
+    saveConfig();
+    toast("设置已保存");
+    hideSettings();
+});
+
+/** 打开设置二级页面:回填当前配置并切换可见性 */
+function showSettings() {
+    ui.setBaseUrl.setText(CONFIG.AI_BASE_URL || "");
+    ui.setApiKey.setText(CONFIG.AI_API_KEY || "");
+    ui.setTextModel.setText(CONFIG.AI_TEXT_MODEL || "");
+    ui.setVisionModel.setText(CONFIG.AI_VISION_MODEL || "");
+    ui.setLoopInterval.setText(String(CONFIG.LOOP_INTERVAL));
+    ui.setStepTimeout.setText(String(CONFIG.STEP_TIMEOUT));
+    ui.setShowKey.setChecked(false);
+    ui.setHint.setText("");
+
+    ui.mainPage.attr("visibility", "gone");
+    ui.settingsPage.attr("visibility", "visible");
+    ui.toolbar.attr("title", "设置");
+    ui.toolbar.attr("subtitle", "AI 接口与实时模拟参数");
+    settingsVisible = true;
+}
+
+/** 返回主页面 */
+function hideSettings() {
+    ui.settingsPage.attr("visibility", "gone");
+    ui.mainPage.attr("visibility", "visible");
+    ui.toolbar.attr("title", "AutoFlow AI");
+    ui.toolbar.attr("subtitle", "AI 自动化脚本管理器");
+    settingsVisible = false;
 }
 
 // ===========================================================================
 //  模块八:启动流程
 // ===========================================================================
+var settingsVisible = false; // 当前是否停留在设置二级页面
+
+// 硬件返回键:在设置页时返回主页面,而不是退出应用
+ui.emitter.on("back_pressed", function (e) {
+    if (settingsVisible) {
+        hideSettings();
+        e.consumed = true;
+    }
+});
+
 (function main() {
     loadConfig();      // 读取持久化配置
     ensureDirs();      // 建目录
